@@ -14,10 +14,11 @@ use diesel::SqliteConnection;
 use time::Tm;
 
 pub mod users;
+pub mod files;
 pub mod models;
 pub mod schema;
 
-pub fn users_connection() -> SqliteConnection {
+pub fn database_connection() -> SqliteConnection {
     SqliteConnection::establish(&"cloud.db")
         .expect("Error connecting to cloud.db")
 }
@@ -30,7 +31,7 @@ fn main() {
 
     rocket::ignite()
         .manage(sessions)
-//        .mount("/", routes![])
+        .mount("/", routes![files::public, files::public_root])
         .mount("/api/", routes![users::signup, users::signin, users::show])
         .launch();
 }

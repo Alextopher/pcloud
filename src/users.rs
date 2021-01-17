@@ -6,13 +6,14 @@ extern crate time;
 
 use diesel::prelude::*;
 use bcrypt::{DEFAULT_COST, hash, verify};
-use rocket::{outcome::IntoOutcome, request::Form};
+use rocket::{http::SameSite, outcome::IntoOutcome, request::Form};
 use rocket::request::{self, Request, FromRequest};
 use rocket::{State, http::{Cookie, Cookies}};
 use rocket::response::{Flash, Redirect};
 use rand::{thread_rng, Rng};
 use rand::distributions::Alphanumeric;
 use time::Duration;
+// TODO: String here should be a unchanging reference
 pub struct LoginedUser(String);
 
 impl<'a, 'r> FromRequest<'a, 'r> for &'a LoginedUser {
@@ -22,18 +23,22 @@ impl<'a, 'r> FromRequest<'a, 'r> for &'a LoginedUser {
         let sessions = request.guard::<State<Sessions>>().unwrap();
 
         // This closure will execute at most once per request, regardless of
-        // the number of times the `User` guard is executed.
+        // the number of times the `LoginedUser` guard is executed.
         let user_result: &Option<LoginedUser> = request.local_cache(|| {
+            // Get the session hashmap
             let session_lock = sessions.lock().unwrap();
 
+            // Get the sessionID from the cookie
             let (username, expires) = request.cookies()
                 .get_private("sessionID")
                 .and_then(|cookie| cookie.value().parse::<String>().ok())
                 .and_then(|session_id| session_lock.get(&session_id))?;
 
+            // Check if it's expired
             let expired = *expires < time::now();
 
             if !expired {
+                request.cookies().get_private("sessionID")?.set_max_age(Duration::hours(1));
                 Some(LoginedUser(username.clone()))
             } else {
                 None
@@ -44,11 +49,13 @@ impl<'a, 'r> FromRequest<'a, 'r> for &'a LoginedUser {
     }
 }
 
-// List all usernames
+// Returns the user's username
 #[get("/user")]
 pub fn show(user: &LoginedUser) -> String {
     user.0.clone()
+
     /*
+    // This get's all users from the db
     let users: Vec<User> = users::table
         .select(users::all_columns)
         .load::<User>(&crate::users_connection())
@@ -58,7 +65,6 @@ pub fn show(user: &LoginedUser) -> String {
         .map(|u| &u.username)
         .fold(String::new(), |a, b| a + b + "\n")
      */
-
 }
 
 #[derive(FromForm)]
@@ -82,7 +88,7 @@ pub fn signup(task: Form<SignupForm>) -> Flash<Redirect> {
                 username: &username,
                 hash: &hashed.unwrap(),            
             })
-            .execute(&crate::users_connection());
+            .execute(&crate::database_connection());
     
             match insert {
                 Ok(_) => Flash::success(Redirect::to("/"), "Success"),
@@ -108,7 +114,7 @@ pub fn signin(task: Form<SigninForm>, mut cookies: Cookies, sessions: State<Sess
     let hash = users::table
         .select(users::hash)
         .filter(users::dsl::username.eq(&username))
-        .first::<String>(&crate::users_connection());
+        .first::<String>(&crate::database_connection());
 
     // Check we found the user
     match hash {
@@ -119,20 +125,23 @@ pub fn signin(task: Form<SigninForm>, mut cookies: Cookies, sessions: State<Sess
                     // Generate a random sessionID
                     let session_id: String = thread_rng()
                         .sample_iter(&Alphanumeric)
-                        .take(32)
+                        .take(16)
                         .map(char::from)
                         .collect();
 
                     // Create cookie
-                    let mut cookie = Cookie::new("sessionID",session_id.clone());
-                    cookie.set_http_only(true);
-                    cookie.set_max_age(Duration::hours(1));
+                    let cookie = Cookie::build("sessionID",session_id.clone())
+                        .http_only(true)
+                        .same_site(SameSite::Strict)
+                        .max_age(Duration::hours(1))
+                        .finish();
+
                     cookies.add_private(cookie);
 
                     let session = (username, time::now() + time::Duration::hours(1));
                     sessions.lock().unwrap().insert(session_id.to_string(), session);
                     
-                    Flash::success(Redirect::to("/home"), "success")
+                    Flash::success(Redirect::to("/"), "success")
                 }
                 Err(err_msg) => {
                     println!("BcryptError");
