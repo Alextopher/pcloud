@@ -1,4 +1,5 @@
 /target
 cloud.db
 Cargo.lock
-storage/*
+storage/public/*
+storage/private/*
