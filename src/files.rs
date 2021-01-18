@@ -1,6 +1,6 @@
-use std::{ffi::OsString, fs::{DirEntry, File}, io::Cursor, path::{Path, PathBuf}};
+use std::{fs::{DirEntry, File}, io::Cursor, path::{Path, PathBuf}};
 
-use rocket::{Request, http::{ContentType, Status}, response::{DEFAULT_CHUNK_SIZE, Responder, Response}};
+use rocket::{Data, Request, http::{ContentType, Status}, response::{DEFAULT_CHUNK_SIZE, Responder, Response}};
 
 use crate::users::LoginedUser;
 pub struct FileServer(PathBuf);
@@ -75,6 +75,20 @@ impl<'r> Responder<'r> for FileServer {
             Err(Status::NotFound)
         }
     }
+}
+
+#[post("/upload/public/<file..>?", format = "any", data = "<data>")]
+pub fn public_upload(_user: &LoginedUser, file: PathBuf, data: Data) -> Result<String, std::io::Error> {
+    println!("public");
+    let path = Path::new("storage/public/").join(file);
+    data.stream_to_file(path).map(|n| n.to_string())
+}
+
+#[post("/upload/private/<file..>?", format = "any", data = "<data>")]
+pub fn private_upload(_user: &LoginedUser, file: PathBuf, data: Data) -> Result<String, std::io::Error> {
+    println!("private");
+    let path = Path::new("storage/private/").join(file);
+    data.stream_to_file(path).map(|n| n.to_string())
 }
 
 #[get("/public")]

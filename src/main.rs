@@ -31,7 +31,7 @@ fn main() {
 
     rocket::ignite()
         .manage(sessions)
-        .mount("/", routes![files::public, files::public_root])
+        .mount("/", routes![files::public, files::public_root, files::public_upload, files::private_upload])
         .mount("/api/", routes![users::signup, users::signin, users::show])
         .launch();
 }
