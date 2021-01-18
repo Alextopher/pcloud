@@ -5,48 +5,62 @@ use rocket::{Request, http::{ContentType, Status}, response::{DEFAULT_CHUNK_SIZE
 use crate::users::LoginedUser;
 pub struct FileServer(PathBuf);
 
-fn entry_to_line(entry: DirEntry) -> Result<String, OsString> {
+fn entry_to_line(entry: DirEntry) -> String {
     let filename = entry.file_name().into_string();
     let metadata = entry.metadata().unwrap();
 
     match filename {
-        Ok(string) => {
-            let mut result = String::from("<li href=");
+        Ok(mut string) => {
+            let mut result = String::from("<a href=");
 
             if metadata.is_dir() {
-                result += &string
+                result += &string;
+                string.push('/');
             } else {
-                result += &string
+                result += &string;
             }
 
-            result.push('>');
+            result += "><li>";
             result += &string;
-            result += "</li>";
+            result += "</li></a>";
 
-            Ok(result)
+            result
         }
-        Err(osstring) => {
-            Err(osstring)
+        Err(_osstring) => {
+            String::from("")
         }
     }
 }
 
 impl<'r> Responder<'r> for FileServer {
-    fn respond_to(self, _: &Request) -> Result<Response<'r>, Status> {
+    fn respond_to(self, req: &Request) -> Result<Response<'r>, Status> {
         // Different behavior depending if path is a directory
         let path = Path::new(&self.0);
 
         if path.exists() {
             if path.is_dir() {
                 if let Ok(entries) = path.read_dir() {
-                    let names = entries
-                        .filter_map(|entry| entry.ok())
-                        .filter_map(|entry| entry_to_line(entry).ok())
-                        .fold(String::new(), |a, b| a + &b + "\n");
+                    let mut body = String::from("<html><head>");
+                    body += "<base href=";
+                    body += &req.uri().to_string();
+                    body += "/></head><body>";
+
+                    body += "<h2> Index for ";
+                    body += &req.uri().to_string();
+                    body += "</h2>";
+
+                    if &req.uri().to_string() != "/public" {
+                        body += "<li> <a href='..'>..</a> </li>"; 
+                    }
+
+                    entries.filter_map(|res| res.ok())
+                        .for_each(|entry| body += &entry_to_line(entry));
+                    
+                    body += "</body></html>";
 
                     Response::build()
-                        .header(ContentType::Plain)
-                        .sized_body(Cursor::new(names))
+                        .sized_body(Cursor::new(body))
+                        .header(ContentType::HTML)
                         .ok()
                 } else {
                     Err(Status::NotFound)
