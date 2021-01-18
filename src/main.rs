@@ -16,6 +16,7 @@ use time::Tm;
 
 pub mod users;
 pub mod public;
+pub mod private;
 pub mod models;
 pub mod schema;
 
@@ -32,7 +33,7 @@ fn main() {
 
     rocket::ignite()
         .manage(sessions)
-        .mount("/", routes![public::public, public::public_file, public::public_directory])
+        .mount("/", routes![public::public, public::public_file, public::public_directory, private::private, private::private_file, private::private_directory])
         .mount("/api/", routes![users::signup, users::signin, users::show])
         .attach(Template::fairing())
         .launch();

@@ -3,21 +3,20 @@ use std::{fs::File, path::{Path, PathBuf}};
 use rocket::{Request, http::{Status, uri::Segments}, request::FromSegments, response::{DEFAULT_CHUNK_SIZE, Responder, Response}};
 use rocket_contrib::templates::Template;
 
-use crate::models::{DirectoryModel, EntryModel};
-
+use crate::{models::{DirectoryModel, EntryModel}, users::LoginedUser};
 #[derive(Debug)]
 pub struct MyError;
-pub struct PublicFile(PathBuf);
+pub struct PrivateFile(PathBuf);
 
-impl<'a> FromSegments<'a> for PublicFile {
+impl<'a> FromSegments<'a> for PrivateFile {
     type Error = MyError;
 
-    fn from_segments(segments: Segments<'a>) -> Result<PublicFile, Self::Error> {
+    fn from_segments(segments: Segments<'a>) -> Result<PrivateFile, Self::Error> {
         if let Ok(buf) = segments.into_path_buf(false) {
-            let joined = Path::new("storage/public/").join(buf);
+            let joined = Path::new("storage/private/").join(buf);
 
             if joined.is_file() {
-                Ok(PublicFile(joined))
+                Ok(PrivateFile(joined))
             } else {
                 Err(MyError)
             }
@@ -26,17 +25,17 @@ impl<'a> FromSegments<'a> for PublicFile {
         }
     }
 }
-pub struct PublicDirectory(PathBuf);
+pub struct PrivateDirectory(PathBuf);
 
-impl<'a> FromSegments<'a> for PublicDirectory {
+impl<'a> FromSegments<'a> for PrivateDirectory {
     type Error = MyError;
 
-    fn from_segments(segments: Segments<'a>) -> Result<PublicDirectory, Self::Error> {
+    fn from_segments(segments: Segments<'a>) -> Result<PrivateDirectory, Self::Error> {
         if let Ok(buf) = segments.into_path_buf(false) {
-            let joined = Path::new("storage/public/").join(buf);
+            let joined = Path::new("storage/private/").join(buf);
 
             if joined.is_dir() {
-                Ok(PublicDirectory(joined))
+                Ok(PrivateDirectory(joined))
             } else {
                 Err(MyError)
             }
@@ -57,14 +56,14 @@ impl<'r> Responder<'r> for FileDownload {
     }
 }
 
-#[get("/public")]
-pub fn public() -> Option<Template> {
-    let dir = PublicDirectory(PathBuf::from("storage/public"));
-    public_directory(dir)
+#[get("/private")]
+pub fn private(user: &LoginedUser) -> Option<Template> {
+    let dir = PrivateDirectory(PathBuf::from("storage/private"));
+    private_directory(user, dir)
 }
 
-#[get("/public/<file..>", rank = 1)]
-pub fn public_file(file: PublicFile) -> Option<FileDownload> {    
+#[get("/private/<file..>", rank = 1)]
+pub fn private_file(_user: &LoginedUser, file: PrivateFile) -> Option<FileDownload> {    
     if let Ok(file) = File::open(file.0) {
         Some(FileDownload(file))
     } else {
@@ -72,8 +71,8 @@ pub fn public_file(file: PublicFile) -> Option<FileDownload> {
     }
 }
 
-#[get("/public/<dir..>", rank = 2)]
-pub fn public_directory(dir: PublicDirectory) -> Option<Template> {
+#[get("/private/<dir..>", rank = 2)]
+pub fn private_directory(_user: &LoginedUser, dir: PrivateDirectory) -> Option<Template> {
     let contents = dir.0.read_dir();
     let uri = dir.0.strip_prefix("storage/").unwrap().to_str().unwrap().to_string();
 
@@ -93,7 +92,7 @@ pub fn public_directory(dir: PublicDirectory) -> Option<Template> {
             })
             .collect();
         
-        if uri != "public" {
+        if uri != "private" {
             entries.insert(0, EntryModel { name: "..".to_string(), base: uri.clone(), size: 0 } );
         }
 

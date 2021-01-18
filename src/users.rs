@@ -144,13 +144,11 @@ pub fn signin(task: Form<SigninForm>, mut cookies: Cookies, sessions: State<Sess
                     Flash::success(Redirect::to("/"), "success")
                 }
                 Err(err_msg) => {
-                    println!("BcryptError");
                     Flash::error(Redirect::to("/login"), format!("error: {}", err_msg))
                 }
             }
         }
         Err(err_msg) => { 
-            println!("Lookup error");
             Flash::error(Redirect::to("/login"), format!("error: {}", err_msg))
         }
     }
