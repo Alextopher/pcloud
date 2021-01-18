@@ -11,10 +11,11 @@ use std::{collections::HashMap, sync::Mutex};
 
 use crate::diesel::Connection;
 use diesel::SqliteConnection;
+use rocket_contrib::templates::Template;
 use time::Tm;
 
 pub mod users;
-pub mod files;
+pub mod public;
 pub mod models;
 pub mod schema;
 
@@ -31,7 +32,8 @@ fn main() {
 
     rocket::ignite()
         .manage(sessions)
-        .mount("/", routes![files::public, files::public_root, files::public_upload, files::private_upload])
+        .mount("/", routes![public::public, public::public_file, public::public_directory])
         .mount("/api/", routes![users::signup, users::signin, users::show])
+        .attach(Template::fairing())
         .launch();
 }

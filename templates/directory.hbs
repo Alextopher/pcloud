@@ -1,0 +1,19 @@
+<html>
+    <body>
+        <h1> Index for /{{uri}}/ </h1>
+        <table>
+            <thead>
+                <th>Name</th>
+                <th>Size</th>
+            </thead>
+            <tbody>
+                {{#each entries}}
+                    <tr>
+                        <td> <a href=/{{base}}/{{name}}> {{name}} </a> </td>
+                        <td> {{size}} </td>
+                    </tr>
+                {{/each}}
+            </tbody>
+        </table>
+    </body>
+</html>
