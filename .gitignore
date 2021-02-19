@@ -1,5 +1,6 @@
 /target
 cloud.db
+.DS_Store
 Cargo.lock
 /storage/private/*
 /storage/public/*
