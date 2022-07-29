@@ -361,6 +361,7 @@ dependencies = [
  "libc",
  "num-integer",
  "num-traits",
+ "serde",
  "time 0.1.44",
  "winapi",
 ]
@@ -1233,6 +1234,7 @@ name = "pcloud"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "pcloud_server",
  "regex",
  "reqwest",
  "serde",
@@ -1240,7 +1242,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pcloud-server"
+name = "pcloud_server"
 version = "0.1.0"
 dependencies = [
  "actix-web",

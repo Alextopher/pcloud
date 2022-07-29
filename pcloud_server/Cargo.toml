@@ -1,0 +1,18 @@
+[package]
+name = "pcloud_server"
+version = "0.1.0"
+edition = "2021"
+
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "^1.0", features = ["derive"] }
+url = "2.2.2"
+rand = "0.8.5"
+sqlx = { version = "0.6", features = [ "runtime-actix-native-tls", "sqlite", "macros", "chrono" ] }
+actix-web = { version = "4", features = [ "openssl" ] }
+openssl = { version = "0.10.0" }
+futures = "0.3.21"
+chrono = { version = "0.4.19", features = [ "serde" ] }

@@ -1,18 +1,4 @@
-use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Debug)]
-struct CreateRedirct {
-    target: String,
-    // How many seconds should the redirect be valid for?
-    destory_after: u32,
-    // How many times can the redirect be used?
-    remaining_usage: Option<i64>,
-}
-
-#[derive(Deserialize, Debug)]
-struct RedirectReponse {
-    key: String,
-}
+use pcloud_server::types::{CreateRedirct, Redirect};
 
 // Parses a suffixed duration string to a number of seconds
 fn parse_duration(duration: String) -> Result<u32, ()> {
@@ -40,10 +26,7 @@ fn parse_duration(duration: String) -> Result<u32, ()> {
 
 pub fn create_redirect(host: String, url: url::Url, usages: Option<u32>, duration: String) {
     let destory_after = parse_duration(duration).unwrap();
-    let remaining_usage = match usages {
-        Some(usages) => Some(usages as i64),
-        None => None,
-    };
+    let remaining_usage = usages.map(|usages| usages as i64);
 
     let redirect = CreateRedirct {
         target: url.to_string(),
@@ -64,7 +47,7 @@ pub fn create_redirect(host: String, url: url::Url, usages: Option<u32>, duratio
 
     match res {
         Ok(res) => {
-            let redirect_response = res.json::<RedirectReponse>().unwrap();
+            let redirect_response = res.json::<Redirect>().unwrap();
             println!("{host}/r/{}", redirect_response.key);
         }
         Err(e) => {

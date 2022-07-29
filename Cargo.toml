@@ -2,5 +2,5 @@
 
 members = [
     "pcloud",
-    "pcloud-server"
+    "pcloud_server"
 ]
